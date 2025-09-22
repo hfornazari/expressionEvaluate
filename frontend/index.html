@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interpretador de Expressões</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        font-family: 'Fira Code', monospace;
+        margin: 0;
+        padding: 0;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+      .app {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+      h1 {
+        margin-bottom: 1rem;
+      }
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        background: rgba(15, 23, 42, 0.6);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+      }
+      input[type="text"] {
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        background: rgba(30, 41, 59, 0.8);
+        color: inherit;
+        font-size: 1rem;
+      }
+      button {
+        align-self: flex-start;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        background: #38bdf8;
+        color: #0f172a;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 25px rgba(56, 189, 248, 0.2);
+      }
+      .panel {
+        background: rgba(15, 23, 42, 0.6);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        margin-bottom: 1.5rem;
+      }
+      .panel h2 {
+        margin-top: 0;
+        margin-bottom: 0.75rem;
+        color: #38bdf8;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 0.75rem;
+      }
+      th,
+      td {
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        padding: 0.5rem;
+        text-align: left;
+      }
+      code {
+        background: rgba(30, 41, 59, 0.9);
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+      }
+      .steps {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .step {
+        border-radius: 8px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        padding: 0.75rem;
+        background: rgba(30, 41, 59, 0.65);
+      }
+      .error {
+        background: rgba(248, 113, 113, 0.12);
+        border: 1px solid rgba(248, 113, 113, 0.35);
+        color: #fecaca;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+      }
+      footer {
+        margin-top: 2rem;
+        text-align: center;
+        color: rgba(148, 163, 184, 0.6);
+        font-size: 0.9rem;
+      }
+    </style>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel">
+      const { useState } = React;
+
+      function ExpressionInterpreter() {
+        const [expression, setExpression] = useState('3 + 4 * 2 / (1 - 5) ^ 2 ^ 3');
+        const [result, setResult] = useState(null);
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState(null);
+
+        const handleSubmit = async (event) => {
+          event.preventDefault();
+          setLoading(true);
+          setError(null);
+          try {
+            const response = await fetch('http://localhost:3001/evaluate', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ expression }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+              throw new Error(data.message || 'Erro ao avaliar expressão');
+            }
+            setResult(data);
+          } catch (err) {
+            setResult(null);
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        return (
+          <div className="app">
+            <h1>Interpretador de Expressões Matemáticas</h1>
+            <p>
+              Digite uma expressão infixa para ver o processo de tokenização, conversão para
+              pós-fixa (RPN) e a avaliação passo a passo utilizando pilhas e filas.
+            </p>
+            <form onSubmit={handleSubmit}>
+              <label htmlFor="expression">Expressão</label>
+              <input
+                id="expression"
+                type="text"
+                value={expression}
+                onChange={(event) => setExpression(event.target.value)}
+                placeholder="Ex: (2 + 3) * 4"
+              />
+              <button type="submit" disabled={loading}>
+                {loading ? 'Interpretando…' : 'Interpretar'}
+              </button>
+            </form>
+            {error && <div className="error">{error}</div>}
+            {result && (
+              <div className="panel">
+                <h2>Visão Geral</h2>
+                <p>
+                  <strong>Expressão normalizada:</strong> <code>{result.expression}</code>
+                </p>
+                <p>
+                  <strong>Resultado final:</strong> <code>{result.result}</code>
+                </p>
+              </div>
+            )}
+            {result && (
+              <div className="panel">
+                <h2>Tokens</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Lexema</th>
+                      <th>Tipo</th>
+                      <th>Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.tokens.map((token, index) => (
+                      <tr key={index}>
+                        <td><code>{token.raw ?? token.value}</code></td>
+                        <td>{token.type}</td>
+                        <td>{token.value}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {result && (
+              <div className="panel">
+                <h2>Fila Pós-fixa</h2>
+                <p>
+                  <code>{result.postfix.join(' ')}</code>
+                </p>
+                <div className="steps">
+                  <h3>Passos do Shunting Yard</h3>
+                  {result.parseSteps.map((step, index) => (
+                    <div className="step" key={index}>
+                      <div><strong>Token lido:</strong> <code>{step.token.value ?? step.token}</code></div>
+                      <div><strong>Fila de saída:</strong> <code>{step.output.join(' ')}</code></div>
+                      <div><strong>Pilha de operadores:</strong> <code>{step.operatorStack.join(' ') || '∅'}</code></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {result && (
+              <div className="panel">
+                <h2>Execução Pós-fixa</h2>
+                <div className="steps">
+                  {result.evaluationSteps.map((step, index) => (
+                    <div className="step" key={index}>
+                      <div><strong>Ação:</strong> {step.action}</div>
+                      <div><strong>Pilha:</strong> <code>{step.stack.join(' ')}</code></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <footer>
+              Construído com React no front-end e um interpretador em Node.js inspirado em compiladores
+              tradicionais.
+            </footer>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<ExpressionInterpreter />);
+    </script>
+  </body>
+</html>

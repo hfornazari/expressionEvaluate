@@ -1,0 +1,17 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Servidor de avaliação de expressões infix -> postfix -> resultado",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "compiler",
+    "expression",
+    "postfix"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
